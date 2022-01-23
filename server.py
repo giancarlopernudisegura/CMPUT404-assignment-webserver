@@ -86,7 +86,7 @@ class MyWebServer(socketserver.BaseRequestHandler):
         self.content_length = len(self.file) if found else 0
         response = MyWebServer.response_header(self.code,
                 ContentType.content_type(posix_path) + ContentType.UTF8,
-                self.content_length)
+                self.content_length, header['path'])
         if found:
             response += self.file
         self.request.sendall(response)
@@ -111,7 +111,7 @@ class MyWebServer(socketserver.BaseRequestHandler):
         }
 
     @staticmethod
-    def response_header(status_code, content_type, content_length):
+    def response_header(status_code, content_type, content_length, location):
         curr_time = datetime.utcnow()
         resp = [
             f'HTTP/1.1 {status_code} {MyWebServer.code_msg(status_code)}',
@@ -119,6 +119,8 @@ class MyWebServer(socketserver.BaseRequestHandler):
             f'Date: {curr_time.strftime("%a, %d %b %Y %H:%M:%S GMT")}',
             f'Connection: keep-alive',
         ]
+        if status_code == 301:
+            resp.append(f'Location: {location}/')
         if status_code < 400:
             resp += [
                 f'Content-Type: {content_type}',
