@@ -62,7 +62,7 @@ class MyWebServer(socketserver.BaseRequestHandler):
         if isdir(BASE_PATH + path):
             if path[-1] == '/':
                 path += 'index.html'
-                self.code = 301
+                self.code = 200
             else:
                 path += '/index.html'
                 self.code = 301
@@ -111,7 +111,7 @@ class MyWebServer(socketserver.BaseRequestHandler):
         resp = [
             f'HTTP/1.1 {status_code} {MyWebServer.code_msg(status_code)}',
             'Server: very not sketchy/1.0',
-            curr_time.strftime('%a, %d %b %Y %H:%M:%S GMT'),
+            f'Date: {curr_time.strftime("%a, %d %b %Y %H:%M:%S GMT")}',
             f'Connection: keep-alive',
         ]
         if status_code < 400:
