@@ -2,7 +2,8 @@
 import socketserver
 import re
 from datetime import datetime
-from os.path import exists, isdir
+from os import getcwd
+from pathlib import Path
 
 # Copyright 2013 Abram Hindle, Eddie Antonio Santos
 #
@@ -42,6 +43,7 @@ class ContentType():
 
     @staticmethod
     def content_type(filepath):
+        filepath = str(filepath)
         if re.search(r'.html?$', filepath):
             return ContentType.HTML
         elif re.search(r'.css$', filepath):
@@ -55,21 +57,24 @@ class ContentType():
 class MyWebServer(socketserver.BaseRequestHandler):
     def handle(self):
         self.data = self.request.recv(1024).strip()
-        print(self.data)
         header = MyWebServer.parse_header(self.data.decode('utf=8'))
         path = header['path']
+        posix_path = Path(getcwd()) / BASE_PATH / path[1:]
+        posix_path = posix_path.resolve()
+        root = Path(f'{getcwd()}/{BASE_PATH}/')
         found = False
-        if isdir(BASE_PATH + path):
+        if not is_child_dir(root, posix_path):
+            self.code = 404
+        elif posix_path.is_dir():
+            posix_path = posix_path / 'index.html'
             if path[-1] == '/':
-                path += 'index.html'
                 self.code = 200
             else:
-                path += '/index.html'
                 self.code = 301
         else:
             self.code = 200
-        if path[0] == '/' and exists(BASE_PATH + path):
-            f = open(BASE_PATH + path, 'rb')
+        if posix_path.exists():
+            f = open(posix_path, 'rb')
             self.file = f.read()
             f.close()
             found = True
@@ -80,7 +85,7 @@ class MyWebServer(socketserver.BaseRequestHandler):
             found = False
         self.content_length = len(self.file) if found else 0
         response = MyWebServer.response_header(self.code,
-                ContentType.content_type(path) + ContentType.UTF8,
+                ContentType.content_type(posix_path) + ContentType.UTF8,
                 self.content_length)
         if found:
             response += self.file
@@ -137,6 +142,13 @@ class MyWebServer(socketserver.BaseRequestHandler):
             return 'Bad Gateway'
         elif status_code == 503:
             return 'Service Unavailable'
+
+
+def is_child_dir(path1, path2):
+    path1 = str(path1)
+    path2 = str(path2)
+    return bool(re.match(path1, path2))
+
 
 if __name__ == "__main__":
     HOST, PORT = "localhost", 8080
