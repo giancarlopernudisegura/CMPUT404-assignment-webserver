@@ -32,6 +32,7 @@ from pathlib import Path
 
 
 BASE_PATH = 'www'
+BUFF_SIZE = 4096
 
 
 class ContentType():
@@ -56,7 +57,7 @@ class ContentType():
 
 class MyWebServer(socketserver.BaseRequestHandler):
     def handle(self):
-        self.data = self.request.recv(1024).strip()
+        self.data = self.request.recv(BUFF_SIZE).strip()
         header = MyWebServer.parse_header(self.data.decode('utf=8'))
         path = header['path']
         posix_path = Path(getcwd()) / BASE_PATH / path[1:]
